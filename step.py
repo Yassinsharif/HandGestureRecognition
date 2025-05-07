@@ -31,7 +31,7 @@ pygame.display.set_caption("Motor Control")
 
 pos = 0
 moving = False  # Variable to control movement
-delay = 0.00020  # Small delay for faster movement
+delay = 0.0002  # Small delay for faster movement
 
 # Function to move motor one step
 def move(forward=True):
