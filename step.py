@@ -6,8 +6,8 @@ import pygame
 # Stepper motor pins
 pins = [17, 18, 27, 22]
 
-# Full step sequence (faster movement)
-full_step_seq = [
+# Step sequence (fast full-step mode)
+seq = [
     [1, 0, 0, 0],
     [1, 1, 0, 0],
     [0, 1, 0, 0],
@@ -30,40 +30,33 @@ pygame.display.set_mode((200, 100))
 pygame.display.set_caption("Motor Control")
 
 pos = 0
-moving = False  # Variable to control movement
-delay = 0.0002  # Small delay for faster movement
+delay = 0.002  # Control speed
 
-# Function to move motor one step
+# Function to move one step
 def move(forward=True):
     global pos
     pos = (pos + 1) % 8 if forward else (pos - 1) % 8
     for i in range(4):
-        GPIO.output(pins[i], full_step_seq[pos][i])
+        GPIO.output(pins[i], seq[pos][i])
 
 try:
-    print("Use LEFT and RIGHT arrows to rotate. SPACE to stop, ESC to quit.")
+    print("Hold LEFT or RIGHT arrows to rotate. Hold SPACE to pause. ESC to quit.")
     running = True
     while running:
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_RIGHT] and moving:
-            move(forward=True)
-        elif keys[pygame.K_LEFT] and moving:
-            move(forward=False)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                running = False
+        if keys[pygame.K_ESCAPE]:
+            running = False
+            break
 
-            # Space key to toggle movement (stop/start)
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                moving = not moving  # Toggle the movement state
-                if moving:
-                    print("Motor movement resumed.")
-                else:
-                    print("Motor movement stopped.")
+        if not keys[pygame.K_SPACE]:  # Only move if Space is NOT held
+            if keys[pygame.K_RIGHT]:
+                move(forward=True)
+            elif keys[pygame.K_LEFT]:
+                move(forward=False)
 
-        # Small wait to make the loop responsive
-        pygame.time.wait(1)  # Minimal wait for responsiveness
+        pygame.event.pump()  # Process internal Pygame events
+        time.sleep(delay)
 
 finally:
     GPIO.cleanup()
