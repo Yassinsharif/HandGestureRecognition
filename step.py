@@ -1,12 +1,14 @@
-#!/usr/bin/python3
 import RPi.GPIO as GPIO
 import time
 import pygame
 
-# Stepper motor pins
-pins = [17, 18, 27, 22]
+# Motor 1 (LEFT/RIGHT) - Physical pins 36, 37, 38, 40 => GPIO 16, 26, 20, 21
+motor1_pins = [16, 20, 21, 26]
 
-# Step sequence (fast full-step mode)
+# Motor 2 (UP/DOWN) - Physical pins 11, 12, 13, 15 => GPIO 17, 18, 27, 22
+motor2_pins = [17, 27, 18, 22]
+
+# Step sequence (half-step for smooth movement)
 seq = [
     [1, 0, 0, 0],
     [1, 1, 0, 0],
@@ -20,7 +22,7 @@ seq = [
 
 # Setup GPIO
 GPIO.setmode(GPIO.BCM)
-for pin in pins:
+for pin in motor1_pins + motor2_pins:
     GPIO.setup(pin, GPIO.OUT)
     GPIO.output(pin, 0)
 
@@ -29,18 +31,19 @@ pygame.init()
 pygame.display.set_mode((200, 100))
 pygame.display.set_caption("Motor Control")
 
-pos = 0
-delay = 0.002  # Control speed
+pos1 = 0  # Step position for motor 1
+pos2 = 0  # Step position for motor 2
+delay = 0.001  # Speed control
 
-# Function to move one step
-def move(forward=True):
-    global pos
+# Move one step in specified direction
+def move_motor(pins, pos, forward=True):
     pos = (pos + 1) % 8 if forward else (pos - 1) % 8
     for i in range(4):
         GPIO.output(pins[i], seq[pos][i])
+    return pos
 
 try:
-    print("Hold LEFT or RIGHT arrows to rotate. Hold SPACE to pause. ESC to quit.")
+    print("← → control Motor 1 | ↑ ↓ control Motor 2 | Hold SPACE to pause | ESC to exit")
     running = True
     while running:
         keys = pygame.key.get_pressed()
@@ -49,13 +52,18 @@ try:
             running = False
             break
 
-        if not keys[pygame.K_SPACE]:  # Only move if Space is NOT held
+        if not keys[pygame.K_SPACE]:  # Only move if not paused
             if keys[pygame.K_RIGHT]:
-                move(forward=True)
+                pos1 = move_motor(motor1_pins, pos1, forward=True)
             elif keys[pygame.K_LEFT]:
-                move(forward=False)
+                pos1 = move_motor(motor1_pins, pos1, forward=False)
 
-        pygame.event.pump()  # Process internal Pygame events
+            if keys[pygame.K_UP]:
+                pos2 = move_motor(motor2_pins, pos2, forward=True)
+            elif keys[pygame.K_DOWN]:
+                pos2 = move_motor(motor2_pins, pos2, forward=False)
+
+        pygame.event.pump()
         time.sleep(delay)
 
 finally:
