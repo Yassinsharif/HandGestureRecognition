@@ -27,14 +27,14 @@ for pin in motor1_pins + motor2_pins:
 delay = 0.001
 pos1 = 0
 pos2 = 0
-
-motor_running = False  # flag to prevent overlapping movement
+motor_running = False
+cooldown_until = 0  # cooldown timestamp
 
 def move_motor_for_1_second(direction):
     global pos1, pos2, motor_running
     motor_running = True
     start_time = time.time()
-    while time.time() - start_time < 1:  # changed to 1 second
+    while time.time() - start_time < 1:
         if direction == "Left":
             pos1 = move_motor(motor1_pins, pos1, forward=True)   # swapped
         elif direction == "Right":
@@ -101,9 +101,11 @@ try:
                     cv2.putText(image, f"Direction: {direction}", (10, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-                    if direction != last_direction and not motor_running:
+                    # Cooldown logic: wait 3 seconds before accepting new input
+                    if direction != last_direction and not motor_running and time.time() > cooldown_until:
                         print(f"Detected: {direction} – motor thread started")
                         last_direction = direction
+                        cooldown_until = time.time() + 3  # 3 sec cooldown
                         t = threading.Thread(target=move_motor_for_1_second, args=(direction,))
                         t.start()
                 else:
